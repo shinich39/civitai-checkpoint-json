@@ -10,7 +10,7 @@ import { queryObject } from "./libs/utils.mjs";
 dotenv.config();
 
 const CONTINUE = false;
-const NEWEST = true;
+const ENABLE_STOP = false;
 const OUTPUT_PATH = "./dist/latest.json";
 const BACKUP_PATH = `./dist/${moment().format("YYYYMMDD")}.json`;
 const INFO_PATH = `./dist/info.json`;
@@ -19,14 +19,14 @@ const MAX_IMAGE_COUNT = 100;
 const MIN_DOWNLOAD_COUNT = 100;
 const MAX_COLLECT_COUNT = 10;
 const REQUIRED_KEYS = [
-  "Size",
+  // "Size",
   "prompt",
   "negativePrompt",
   "seed",
   // "Clip skip",
   "steps",
   "sampler",
-  "Denoising strength",
+  ["Denoising strength", "denoise"],
   "cfgScale",
 ];
 
@@ -34,11 +34,18 @@ async function getModels(limit, nextPage) {
   const params = new URLSearchParams({
     limit,
     types: "Checkpoint",
-    ...(NEWEST ? {
-      sort: "Newest"
-    } : {
-      sort: "Most Downloaded",
-    })
+
+    // modelId: 926443,
+    
+    // sort: "Newest",
+    sort: "Most Downloaded",
+    // sort: "Highest Rated",
+
+    // period: "AllTime",
+    // period: "Year",
+    // period: "Month",
+    period: "Week",
+    // period: "Day",
   });
 
   const url = nextPage || "https://civitai.com/api/v1/models?"+params.toString();
@@ -110,19 +117,35 @@ function getDataFromImage(image) {
     return;
   }
   
+
   for (const key of REQUIRED_KEYS) {
-    if (!image.meta[key]) {
-      return;
+    if (Array.isArray(key)) {
+      let found = false;
+      for (const k of key) {
+        if (image.meta[k]) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        return;
+      }
+    } else {
+      if (!image.meta[key]) {
+        return;
+      }
     }
+
   }
 
   let w, h;
   if (image.meta.Size) {
-    w = parseInt(image.meta.Size.split("x")[0]);
-    h = parseInt(image.meta.Size.split("x")[1]);
-    if (isNaN(w) || isNaN(h)) {
-      w = undefined;
-      h = undefined;
+    const _w = parseInt(image.meta.Size.split("x")[0]);
+    const _h = parseInt(image.meta.Size.split("x")[1]);
+    if (!isNaN(_w) && !isNaN(_h)) {
+      w = _w;
+      h = _h;
     }
   }
   
@@ -140,7 +163,7 @@ function getDataFromImage(image) {
     seed: image.meta.seed || undefined,
     // clipSkip: image.meta["Clip skip"] || undefined,
     steps: image.meta.steps || undefined,
-    strength: image.meta["Denoising strength"] || undefined,
+    strength: image.meta["Denoising strength"] || image.meta["denoise"] || undefined,
     sampler: image.meta.sampler || undefined,
     cfg: image.meta.cfgScale || undefined,
   };
@@ -209,12 +232,12 @@ function getStatFromModel(model) {
         continue;
       }
       if (model.stats.downloadCount < MIN_DOWNLOAD_COUNT) {
-        if (NEWEST) {
-          continue;
-        } else {
-          console.error(`${model.name}'s downloadCount is ${model.stats.downloadCount}`);
+        console.error(`${model.name}'s downloadCount is ${model.stats.downloadCount}`);
+        if (ENABLE_STOP) {
           stop = true;
           break;
+        } else {
+          continue;
         }
       }
 
@@ -230,7 +253,7 @@ function getStatFromModel(model) {
         if (prevData) {
           // console.log(`Previous data found: ${model.name}:${version.name}`);
           if (prevData.updatedAt && updatedAt && prevData.updatedAt == updatedAt) {
-            console.log(`No update yet: ${prevData.updatedAt} == ${updatedAt}`);
+            // console.log(`No update yet: ${prevData.updatedAt} == ${updatedAt}`);
             continue;
           }
         }
@@ -335,6 +358,8 @@ function getStatFromModel(model) {
       dataCount: prev.dataCount,
       updatedAt: prev.updatedAt,
     }), "utf8");
+
+    console.log("JSON saved");
 
     if (stop) {
       break;
