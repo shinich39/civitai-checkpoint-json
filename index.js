@@ -9,7 +9,8 @@ import { queryObject } from "./libs/utils.mjs";
 
 dotenv.config();
 
-const CONTINUE = true;
+const CONTINUE = false;
+const NEWEST = true;
 const OUTPUT_PATH = "./dist/latest.json";
 const BACKUP_PATH = `./dist/${moment().format("YYYYMMDD")}.json`;
 const INFO_PATH = `./dist/info.json`;
@@ -33,7 +34,11 @@ async function getModels(limit, nextPage) {
   const params = new URLSearchParams({
     limit,
     types: "Checkpoint",
-    sort: "Most Downloaded",
+    ...(NEWEST ? {
+      sort: "Newest"
+    } : {
+      sort: "Most Downloaded",
+    })
   });
 
   const url = nextPage || "https://civitai.com/api/v1/models?"+params.toString();
@@ -180,14 +185,13 @@ function getStatFromModel(model) {
 
   let modelCount = 0,
       imageCount = 0,
-      page = 0,
       modelRes = await getModels(MAX_MODEL_COUNT, lastURL);
 
   // debug(res);
 
   while(true) {
     const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
-    console.log(`Page[${page++}]: ${modelRes.items.length} models found`);
+    console.log(`${modelRes.items.length} models found`);
 
     if (!prev.data) {
       prev.data = [];
@@ -205,9 +209,13 @@ function getStatFromModel(model) {
         continue;
       }
       if (model.stats.downloadCount < MIN_DOWNLOAD_COUNT) {
-        console.error(`${model.name}'s downloadCount is ${model.stats.downloadCount}`);
-        stop = true;
-        break;
+        if (NEWEST) {
+          continue;
+        } else {
+          console.error(`${model.name}'s downloadCount is ${model.stats.downloadCount}`);
+          stop = true;
+          break;
+        }
       }
 
       console.log(`Model(${modelCount++}): ${model.name}`);
@@ -332,7 +340,6 @@ function getStatFromModel(model) {
       break;
     }
     if (modelRes.items.length < MAX_MODEL_COUNT || !modelRes?.metadata?.nextPage) {
-      // End
       break;
     }
 
