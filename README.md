@@ -11,7 +11,6 @@ Copy the [latest.json](https://raw.githubusercontent.com/shinich39/civitai-metad
 {
   "updatedAt": number,
   "dataCount": number,
-  "lastURL": string,
   "data": [
     {
       "updatedAt": "2023-07-29T20:50:47.173Z",

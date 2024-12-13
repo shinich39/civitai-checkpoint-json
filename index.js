@@ -9,13 +9,13 @@ import { queryObject } from "./libs/utils.mjs";
 
 dotenv.config();
 
-const CONTINUE = false;
+const CONTINUE = true;
 const OUTPUT_PATH = "./dist/latest.json";
 const BACKUP_PATH = `./dist/${moment().format("YYYYMMDD")}.json`;
 const INFO_PATH = `./dist/info.json`;
 const MAX_MODEL_COUNT = 11;
 const MAX_IMAGE_COUNT = 100;
-const MIN_DOWNLOAD_COUNT = 390;
+const MIN_DOWNLOAD_COUNT = 100;
 const MAX_COLLECT_COUNT = 10;
 const REQUIRED_KEYS = [
   "Size",
@@ -173,20 +173,19 @@ function getStatFromModel(model) {
 ;(async () => {
   let lastURL;
 
-  if (CONTINUE) {
-    const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
-    lastURL = prev.lastURL;
+  if (CONTINUE && fs.existsSync(INFO_PATH)) {
+    const info = JSON.parse(fs.readFileSync(INFO_PATH, "utf8"));
+    lastURL = info.lastURL;
   }
 
-  let isReached = false,
-      modelCount = 0,
+  let modelCount = 0,
       imageCount = 0,
       page = 0,
       modelRes = await getModels(MAX_MODEL_COUNT, lastURL);
 
   // debug(res);
 
-  while(!isReached) {
+  while(true) {
     const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
     console.log(`Page[${page++}]: ${modelRes.items.length} models found`);
 
@@ -199,6 +198,7 @@ function getStatFromModel(model) {
     //   console.log(`Model[${i}]: ${modelRes.items[i].name}`);
     // }
 
+    let stop = false;
     for (const model of modelRes.items) {
       if (!model?.creator?.username) {
         console.error(`${model.name}'s creator not found`);
@@ -206,7 +206,7 @@ function getStatFromModel(model) {
       }
       if (model.stats.downloadCount < MIN_DOWNLOAD_COUNT) {
         console.error(`${model.name}'s downloadCount is ${model.stats.downloadCount}`);
-        isReached = true;
+        stop = true;
         break;
       }
 
@@ -312,7 +312,6 @@ function getStatFromModel(model) {
     }
 
     // Update
-    prev.lastURL = lastURL;
     prev.dataCount = prev.data.length;
     prev.updatedAt = Date.now();
 
@@ -321,17 +320,17 @@ function getStatFromModel(model) {
       (b.stats.downloadCount || 0) - (a.stats.downloadCount || 0)
     );
 
-    const updates = JSON.stringify(prev, null, 2);
-    const info = JSON.stringify({
-      lastURL: prev.lastURL,
+    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(prev), "utf8");
+    fs.writeFileSync(BACKUP_PATH, JSON.stringify(prev, null, 2), "utf8");
+    fs.writeFileSync(INFO_PATH, JSON.stringify({
+      lastURL: lastURL,
       dataCount: prev.dataCount,
       updatedAt: prev.updatedAt,
-    });
+    }), "utf8");
 
-    fs.writeFileSync(OUTPUT_PATH, updates, "utf8");
-    fs.writeFileSync(BACKUP_PATH, updates, "utf8");
-    fs.writeFileSync(INFO_PATH, info, "utf8");
-
+    if (stop) {
+      break;
+    }
     if (modelRes.items.length < MAX_MODEL_COUNT || !modelRes?.metadata?.nextPage) {
       // End
       break;
