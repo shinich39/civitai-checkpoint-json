@@ -4,7 +4,7 @@ Collect used metadata by model in civitai
 
 ## Usage
 
-Copy the latest.json file from dist directory and use it.  
+Copy the [latest.json](https://raw.githubusercontent.com/shinich39/civitai-metadata-json/refs/heads/main/dist/latest.json) file from dist directory and use it.  
 
 ```js
 // dist/latest.json
