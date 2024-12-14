@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
+    "optimize": "node optimize.js",
     "pretty": "prettier index.js --write --config .prettierrc.js"
   },
   "keywords": [

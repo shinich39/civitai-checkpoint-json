@@ -35,8 +35,7 @@ Copy the [latest.json](https://raw.githubusercontent.com/shinich39/civitai-metad
         "np": string|undefined, // Negative prompts
         "seed": number|undefined,
         "steps": number|undefined,
-        "strength": number|undefined, // Denoising strenth
-        "sampler": string|undefined,
+        "sampler": string|undefined, // sampler or sampler with scheduler(A1111)
         "cfg": number|undefined, // cfgScale
       }
     }

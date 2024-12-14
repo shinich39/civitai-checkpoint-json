@@ -18,24 +18,25 @@ const MAX_MODEL_COUNT = 11;
 const MAX_IMAGE_COUNT = 100;
 const MIN_DOWNLOAD_COUNT = 100;
 const MAX_COLLECT_COUNT = 10;
-const REQUIRED_KEYS = [
-  // "Size",
-  "prompt",
-  "negativePrompt",
-  "seed",
-  // "Clip skip",
-  "steps",
-  "sampler",
-  ["Denoising strength", "denoise"],
-  "cfgScale",
-];
+
+const METADATA_KEYS = {
+  // "size": ["Size"], 
+  "pp": ["prompt", "Prompt",],
+  "np": ["negativePrompt", "Negative Prompt",],
+  "seed": ["seed","Seed",],
+  // "clip": ["Clip skip",],
+  "steps": ["steps", "Steps",],
+  "sampler": ["Sampler", "sampler",],
+  // "strength": ["Denoising strength", "Denoising Strength", "denoising strength", "Denoise", "denoise", "Strength", "strength"],
+  "cfg": ["cfgScale", "cfg", "Guidance", "guidance",],
+}
 
 async function getModels(limit, nextPage) {
   const params = new URLSearchParams({
     limit,
     types: "Checkpoint",
 
-    // modelId: 926443,
+    // query: "DreamShaper",
     
     // sort: "Newest",
     sort: "Most Downloaded",
@@ -49,6 +50,7 @@ async function getModels(limit, nextPage) {
   });
 
   const url = nextPage || "https://civitai.com/api/v1/models?"+params.toString();
+
   const headers = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${process.env.API_KEY}`,
@@ -116,27 +118,19 @@ function getDataFromImage(image) {
   if ((!image.width || !image.height) && !image.meta.Size) {
     return;
   }
-  
 
-  for (const key of REQUIRED_KEYS) {
-    if (Array.isArray(key)) {
-      let found = false;
-      for (const k of key) {
-        if (image.meta[k]) {
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        return;
-      }
-    } else {
-      if (!image.meta[key]) {
-        return;
+  // Check requirements
+  for (const [_, keys] of Object.entries(METADATA_KEYS)) {
+    let found = false;
+    for (const key of keys) {
+      if (image.meta[key]) {
+        found = true;
+        break;
       }
     }
-
+    if (!found) {
+      return;
+    }
   }
 
   let w, h;
@@ -154,28 +148,21 @@ function getDataFromImage(image) {
     h = image.height;
   }
 
-  // Optimize keyname
-  return {
-    w: w || undefined,
-    h: h || undefined,
-    pp: image.meta.prompt || undefined,
-    np: image.meta.negativePrompt || undefined,
-    seed: image.meta.seed || undefined,
-    // clipSkip: image.meta["Clip skip"] || undefined,
-    steps: image.meta.steps || undefined,
-    strength: image.meta["Denoising strength"] || image.meta["denoise"] || undefined,
-    sampler: image.meta.sampler || undefined,
-    cfg: image.meta.cfgScale || undefined,
-  };
+  const result = {
+    w: w,
+    h: h,
+  }
 
-  // return {
-  //   positivePrompt: image.meta.prompt || undefined,
-  //   negativePrompt: image.meta.negativePrompt || undefined,
-  //   steps: image.meta.steps || undefined,
-  //   denoisingStrength: image.meta["Denoising strength"] || undefined,
-  //   sampler: image.meta.sampler || undefined,
-  //   cfgScale: image.meta.cfgScale || undefined,
-  // };
+  for (const [label, keys] of Object.entries(METADATA_KEYS)) {
+    for (const key of keys) {
+      if (image.meta[key]) {
+        result[label] = image.meta[key];
+        break;
+      }
+    }
+  }
+
+  return result;
 }
 
 function getStatFromModel(model) {
@@ -365,6 +352,7 @@ function getStatFromModel(model) {
       break;
     }
     if (modelRes.items.length < MAX_MODEL_COUNT || !modelRes?.metadata?.nextPage) {
+      console.log("No more models");
       break;
     }
 
@@ -372,5 +360,5 @@ function getStatFromModel(model) {
     modelRes = await getModels(MAX_MODEL_COUNT, lastURL);
   }
 
-  console.log("Finish");
+  console.log("Collection completed");
 })();
