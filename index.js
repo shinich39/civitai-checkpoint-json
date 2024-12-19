@@ -351,7 +351,7 @@ function getStatFromModel(model) {
     if (stop) {
       break;
     }
-    if (modelRes.items.length < MAX_MODEL_COUNT || !modelRes?.metadata?.nextPage) {
+    if (modelRes.items.length < 1 || !modelRes?.metadata?.nextPage) {
       console.log("No more models");
       break;
     }
