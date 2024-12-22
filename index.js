@@ -193,20 +193,21 @@ function getStatFromModel(model) {
     lastURL = info.lastURL;
   }
 
+  const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
+
+  if (!prev.data) {
+    prev.data = [];
+  }
+
   let modelCount = 0,
       imageCount = 0,
       modelRes = await getModels(MAX_MODEL_COUNT, lastURL);
 
   // debug(modelRes);
 
-  const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
-  console.log(`${modelRes.items.length} models found`);
-
-  if (!prev.data) {
-    prev.data = [];
-  }
-
   while(true) {
+    console.log(`${modelRes.items.length} models found`);
+
     const prevDataLen = prev.data.length;
 
     // Debug
