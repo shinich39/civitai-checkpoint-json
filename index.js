@@ -194,7 +194,6 @@ function getStatFromModel(model) {
   }
 
   const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
-
   if (!prev.data) {
     prev.data = [];
   }
@@ -217,10 +216,12 @@ function getStatFromModel(model) {
 
     let stop = false;
     for (const model of modelRes.items) {
+
       if (!model?.creator?.username) {
         console.error(`${model.name}'s creator not found`);
         continue;
       }
+
       if (model.stats.downloadCount < MIN_DOWNLOAD_COUNT) {
         console.error(`${model.name}'s downloadCount is ${model.stats.downloadCount}`);
         if (ENABLE_STOP) {
@@ -354,7 +355,7 @@ function getStatFromModel(model) {
     if (stop) {
       break;
     }
-    if (modelRes.items.length < 1 || !modelRes?.metadata?.nextPage) {
+    if (modelRes.items.length == 0 || !modelRes?.metadata?.nextPage) {
       console.log("No more models");
       break;
     }
