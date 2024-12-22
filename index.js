@@ -39,13 +39,13 @@ async function getModels(limit, nextPage) {
     // query: "DreamShaper",
     
     // sort: "Newest",
-    sort: "Most Downloaded",
-    // sort: "Highest Rated",
+    // sort: "Most Downloaded",
+    sort: "Highest Rated",
 
     // period: "AllTime",
     // period: "Year",
-    // period: "Month",
-    period: "Week",
+    period: "Month",
+    // period: "Week",
     // period: "Day",
   });
 
@@ -197,15 +197,17 @@ function getStatFromModel(model) {
       imageCount = 0,
       modelRes = await getModels(MAX_MODEL_COUNT, lastURL);
 
-  // debug(res);
+  // debug(modelRes);
+
+  const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
+  console.log(`${modelRes.items.length} models found`);
+
+  if (!prev.data) {
+    prev.data = [];
+  }
 
   while(true) {
-    const prev = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf8"));
-    console.log(`${modelRes.items.length} models found`);
-
-    if (!prev.data) {
-      prev.data = [];
-    }
+    const prevDataLen = prev.data.length;
 
     // Debug
     // for (let i = 0; i < modelRes.items.length; i++) {
@@ -326,7 +328,7 @@ function getStatFromModel(model) {
         }
       }
 
-      console.log(`${prev.data.length} data collected`);
+      // console.log(`${prev.data.length} data collected`);
     }
 
     // Update
@@ -346,7 +348,7 @@ function getStatFromModel(model) {
       updatedAt: prev.updatedAt,
     }), "utf8");
 
-    console.log("JSON saved");
+    console.log(`JSON updated: ${prevDataLen} => ${prev.data.length}`);
 
     if (stop) {
       break;
