@@ -1,5 +1,5 @@
 {
-  "name": "civitai-metadata-json",
+  "name": "civitai-checkpoint-json",
   "version": "1.0.0",
   "description": "Collect used metadata by model in civitai",
   "main": "index.js",
