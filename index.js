@@ -19,6 +19,9 @@ const MAX_IMAGE_COUNT = 100;
 const MIN_DOWNLOAD_COUNT = 100;
 const MAX_COLLECT_COUNT = 10;
 
+// -1: Infinity
+const MAX_COLLECTED_MODEL_COUNT = -1;
+
 const METADATA_KEYS = {
   // "size": ["Size"], 
   "pp": ["prompt", "Prompt",],
@@ -333,24 +336,7 @@ function getStatFromModel(model) {
       // console.log(`${prev.data.length} data collected`);
     }
 
-    // Update
-    prev.dataCount = prev.data.length;
-    prev.updatedAt = Date.now();
-
-    // Sort
-    prev.data = prev.data.sort((a, b) => 
-      (b.stats.downloadCount || 0) - (a.stats.downloadCount || 0)
-    );
-
-    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(prev), "utf8");
-    fs.writeFileSync(BACKUP_PATH, JSON.stringify(prev, null, 2), "utf8");
-    fs.writeFileSync(INFO_PATH, JSON.stringify({
-      lastURL: lastURL,
-      dataCount: prev.dataCount,
-      updatedAt: prev.updatedAt,
-    }), "utf8");
-
-    console.log(`JSON updated: ${prevDataLen} => ${prev.data.length}`);
+    console.log(`Data collected: ${prevDataLen} => ${prev.data.length}`);
 
     if (stop) {
       break;
@@ -359,10 +345,31 @@ function getStatFromModel(model) {
       console.log("No more models");
       break;
     }
+    if (MAX_COLLECTED_MODEL_COUNT > -1 && MAX_COLLECTED_MODEL_COUNT <= modelCount) {
+      console.log(`Model counts exceeds MAX_MODEL_COUNT: ${modelCount} >= ${MAX_COLLECTED_MODEL_COUNT}`);
+      break;
+    }
 
     lastURL = modelRes.metadata.nextPage;
     modelRes = await getModels(MAX_MODEL_COUNT, lastURL);
   }
 
+  // Update
+  prev.dataCount = prev.data.length;
+  prev.updatedAt = Date.now();
+
+  // Sort
+  prev.data = prev.data.sort((a, b) => 
+    (b.stats.downloadCount || 0) - (a.stats.downloadCount || 0)
+  );
+
+  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(prev), "utf8");
+  fs.writeFileSync(BACKUP_PATH, JSON.stringify(prev, null, 2), "utf8");
+  fs.writeFileSync(INFO_PATH, JSON.stringify({
+    lastURL: lastURL,
+    dataCount: prev.dataCount,
+    updatedAt: prev.updatedAt,
+  }), "utf8");
+  
   console.log("Collection completed");
 })();
