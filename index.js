@@ -207,6 +207,23 @@ function getStatFromModel(model) {
 
   // debug(modelRes);
 
+  const save = function() {
+    prev.dataCount = prev.data.length;
+    prev.updatedAt = Date.now();
+
+    prev.data = prev.data.sort((a, b) => 
+      (b.stats.downloadCount || 0) - (a.stats.downloadCount || 0)
+    );
+
+    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(prev), "utf8");
+    fs.writeFileSync(BACKUP_PATH, JSON.stringify(prev, null, 2), "utf8");
+    fs.writeFileSync(INFO_PATH, JSON.stringify({
+      lastURL: lastURL,
+      dataCount: prev.dataCount,
+      updatedAt: prev.updatedAt,
+    }), "utf8");
+  }
+
   while(true) {
     console.log(`${modelRes.items.length} models found`);
 
@@ -351,25 +368,11 @@ function getStatFromModel(model) {
     }
 
     lastURL = modelRes.metadata.nextPage;
+    save();
     modelRes = await getModels(MAX_MODEL_COUNT, lastURL);
   }
 
-  // Update
-  prev.dataCount = prev.data.length;
-  prev.updatedAt = Date.now();
+  save();
 
-  // Sort
-  prev.data = prev.data.sort((a, b) => 
-    (b.stats.downloadCount || 0) - (a.stats.downloadCount || 0)
-  );
-
-  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(prev), "utf8");
-  fs.writeFileSync(BACKUP_PATH, JSON.stringify(prev, null, 2), "utf8");
-  fs.writeFileSync(INFO_PATH, JSON.stringify({
-    lastURL: lastURL,
-    dataCount: prev.dataCount,
-    updatedAt: prev.updatedAt,
-  }), "utf8");
-  
   console.log("Collection completed");
 })();
